@@ -382,9 +382,9 @@ private:
         auto str = std::string{input_.substr(start, pos_ - start)};
 
         if (is_float) {
-            double val;
-            auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), val);
-            if (ec != std::errc{}) {
+            char* end = nullptr;
+            double val = std::strtod(str.c_str(), &end);
+            if (end != str.c_str() + str.size()) {
                 throw ParseError(line_, std::format("invalid float '{}'", str));
             }
             return Value{val};

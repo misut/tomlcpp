@@ -9,6 +9,8 @@ set(CMAKE_CXX_MODULE_STD ON)
 project(tomlcpp LANGUAGES CXX)
 
 include(FetchContent)
+
+# dev-dependencies (test-only)
 FetchContent_Declare(txn
     GIT_REPOSITORY https://github.com/misut/txn.git
     GIT_TAG v0.1.0
@@ -20,9 +22,6 @@ add_library(tomlcpp-modules)
 target_sources(tomlcpp-modules
     PUBLIC FILE_SET CXX_MODULES BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.cppm
-)
-target_link_libraries(tomlcpp-modules PUBLIC
-    txn
 )
 
 add_library(tomlcpp ALIAS tomlcpp-modules)
@@ -36,10 +35,16 @@ add_executable(test-parse)
 target_sources(test-parse PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/parse.cpp
 )
-target_link_libraries(test-parse PRIVATE tomlcpp-modules)
+target_link_libraries(test-parse PRIVATE
+    tomlcpp-modules
+    txn
+)
 
 add_executable(test-serde)
 target_sources(test-serde PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/serde.cpp
 )
-target_link_libraries(test-serde PRIVATE tomlcpp-modules)
+target_link_libraries(test-serde PRIVATE
+    tomlcpp-modules
+    txn
+)

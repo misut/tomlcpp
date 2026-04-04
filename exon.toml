@@ -6,6 +6,3 @@ authors = ["Geunryeol Park (misut)"]
 license = "MIT"
 type = "lib"
 standard = 23
-
-[dev-dependencies]
-"github.com/misut/txn" = "0.1.0"

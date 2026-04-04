@@ -34,27 +34,6 @@ auto host = table.at("server").as_table().at("host").as_string();
 auto port = table.at("server").as_table().at("port").as_integer();
 ```
 
-## With txn
-
-Combine with [txn](https://github.com/misut/txn) for struct-based serialization:
-
-```cpp
-import toml;
-import txn;
-
-#include "txn_describe.h"
-
-struct Server {
-    std::string host;
-    int port;
-    std::optional<bool> debug;
-};
-TXN_DESCRIBE(Server, host, port, debug)
-
-auto table = toml::parse_file("config.toml");
-auto server = txn::from_value<Server>(toml::Value{std::move(table)});
-```
-
 ## API
 
 ### Parsing

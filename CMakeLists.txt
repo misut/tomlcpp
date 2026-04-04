@@ -8,16 +8,6 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
 set(CMAKE_CXX_MODULE_STD ON)
 project(tomlcpp LANGUAGES CXX)
 
-include(FetchContent)
-
-# dev-dependencies (test-only)
-FetchContent_Declare(txn
-    GIT_REPOSITORY https://github.com/misut/txn.git
-    GIT_TAG v0.1.0
-    GIT_SHALLOW ON
-)
-FetchContent_MakeAvailable(txn)
-
 add_library(tomlcpp-modules)
 target_sources(tomlcpp-modules
     PUBLIC FILE_SET CXX_MODULES BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
@@ -37,14 +27,4 @@ target_sources(test-parse PRIVATE
 )
 target_link_libraries(test-parse PRIVATE
     tomlcpp-modules
-    txn
-)
-
-add_executable(test-serde)
-target_sources(test-serde PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/serde.cpp
-)
-target_link_libraries(test-serde PRIVATE
-    tomlcpp-modules
-    txn
 )

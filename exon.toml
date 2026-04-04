@@ -1,0 +1,8 @@
+[package]
+name = "tomlcpp"
+version = "0.1.0"
+description = "A TOML parser for C++"
+authors = ["Geunryeol Park (misut)"]
+license = "MIT"
+type = "lib"
+standard = 23

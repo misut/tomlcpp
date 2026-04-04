@@ -1,0 +1,7 @@
+[plugins]
+intron = "https://github.com/misut/mise-intron.git"
+exon = "https://github.com/misut/mise-exon.git"
+
+[tools]
+intron = "0.4.0"
+exon = "0.4.0"

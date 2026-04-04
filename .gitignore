@@ -1,5 +1,9 @@
 # Build
 build/
+.exon/
+
+# IDE
+.vscode/
 
 # Claude Code
 CLAUDE.md

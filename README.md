@@ -78,6 +78,16 @@ try {
 }
 ```
 
+## Supported TOML features
+
+- Strings (basic, literal, escape sequences)
+- Integers, floats (including exponent notation), booleans
+- Arrays (including nested, trailing comma, multi-line with comments)
+- Tables and nested tables (`[a.b.c]`)
+- Arrays of tables (`[[items]]`)
+- Inline tables (`x = { a = 1, b = [2, 3] }`)
+- Quoted keys, comments
+
 ## License
 
 MIT

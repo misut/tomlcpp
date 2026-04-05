@@ -8,7 +8,7 @@ A TOML parser for C++. No dependencies.
 
 ```toml
 [dependencies]
-"github.com/misut/tomlcpp" = "0.2.0"
+"github.com/misut/tomlcpp" = "0.3.0"
 ```
 
 ### CMake

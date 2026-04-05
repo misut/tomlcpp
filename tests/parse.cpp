@@ -87,6 +87,52 @@ void test_array_of_tables() {
     check(arr[1].as_table().at("name").as_string() == "b", "array of tables [1]");
 }
 
+void test_inline_table() {
+    auto t = toml::parse(R"(point = { x = 1, y = 2 })");
+    check(t.at("point").is_table(), "inline table type");
+    auto const& p = t.at("point").as_table();
+    check(p.at("x").as_integer() == 1, "inline table x");
+    check(p.at("y").as_integer() == 2, "inline table y");
+}
+
+void test_empty_inline_table() {
+    auto t = toml::parse("empty = {}");
+    check(t.at("empty").is_table(), "empty inline table type");
+    check(t.at("empty").as_table().empty(), "empty inline table size");
+}
+
+void test_inline_table_mixed_values() {
+    auto t = toml::parse(R"(dep = { name = "fmt", version = "11.0.0", features = ["xchar", "ranges"] })");
+    auto const& d = t.at("dep").as_table();
+    check(d.at("name").as_string() == "fmt", "inline table string");
+    check(d.at("version").as_string() == "11.0.0", "inline table version");
+    check(d.at("features").is_array(), "inline table nested array");
+    check(d.at("features").as_array().size() == 2, "inline table array size");
+    check(d.at("features").as_array()[0].as_string() == "xchar", "inline table array[0]");
+}
+
+void test_inline_table_in_section() {
+    auto t = toml::parse("[deps]\nfmt = { version = \"11.0.0\", features = [\"xchar\"] }");
+    auto const& deps = t.at("deps").as_table();
+    check(deps.at("fmt").is_table(), "inline table inside section");
+    check(deps.at("fmt").as_table().at("version").as_string() == "11.0.0", "inline table in section value");
+}
+
+void test_inline_table_trailing_comma() {
+    auto t = toml::parse("x = { a = 1, }");
+    check(t.at("x").as_table().at("a").as_integer() == 1, "inline table trailing comma");
+}
+
+void test_unterminated_inline_table_error() {
+    bool caught = false;
+    try {
+        toml::parse("x = { a = 1");
+    } catch (toml::ParseError const&) {
+        caught = true;
+    }
+    check(caught, "unterminated inline table error");
+}
+
 void test_escape_sequences() {
     auto t = toml::parse(R"(s = "hello\tworld\n")");
     check(t.at("s").as_string() == "hello\tworld\n", "escape sequences");
@@ -174,6 +220,12 @@ int main() {
     test_table();
     test_nested_table();
     test_array_of_tables();
+    test_inline_table();
+    test_empty_inline_table();
+    test_inline_table_mixed_values();
+    test_inline_table_in_section();
+    test_inline_table_trailing_comma();
+    test_unterminated_inline_table_error();
     test_escape_sequences();
     test_literal_string();
     test_quoted_key();

@@ -289,6 +289,7 @@ private:
         if (c == '"') return Value{parse_basic_string()};
         if (c == '\'') return Value{parse_literal_string()};
         if (c == '[') return parse_array();
+        if (c == '{') return parse_inline_table();
 
         if (input_.substr(pos_).starts_with("true")) {
             if (pos_ + 4 >= input_.size() || !is_bare_key_char(input_[pos_ + 4])) {
@@ -447,6 +448,56 @@ private:
         }
 
         return Value{std::move(arr)};
+    }
+
+    Value parse_inline_table() {
+        advance(); // skip '{'
+        Table tbl;
+        skip_ws();
+
+        if (!at_end() && peek() == '}') {
+            advance();
+            return Value{std::move(tbl)};
+        }
+
+        while (true) {
+            skip_ws();
+            if (at_end()) throw ParseError(line_, "unterminated inline table");
+
+            auto key = parse_key();
+            skip_ws();
+            if (at_end() || peek() != '=') {
+                throw ParseError(line_, "expected '=' in inline table");
+            }
+            advance();
+            skip_ws();
+            auto value = parse_value();
+
+            if (tbl.contains(key)) {
+                throw ParseError(line_, std::format("duplicate key '{}'", key));
+            }
+            tbl.emplace(std::move(key), std::move(value));
+
+            skip_ws();
+            if (at_end()) throw ParseError(line_, "unterminated inline table");
+
+            if (peek() == '}') {
+                advance();
+                break;
+            }
+            if (peek() == ',') {
+                advance();
+                skip_ws();
+                if (!at_end() && peek() == '}') {
+                    advance();
+                    break;
+                }
+            } else {
+                throw ParseError(line_, "expected ',' or '}' in inline table");
+            }
+        }
+
+        return Value{std::move(tbl)};
     }
 };
 

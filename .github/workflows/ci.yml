@@ -32,6 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Cache toolchains
+        uses: actions/cache@v4
+        with:
+          path: ~/.intron/toolchains
+          key: intron-${{ runner.os }}-${{ runner.arch }}-llvm22.1.2-cmake4.3.1-ninja1.13.2
+
       - name: Install intron
         run: |
           gh release download v0.14.0 -R misut/intron -p "intron-*-${{ matrix.platform }}.tar.gz"

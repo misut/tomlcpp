@@ -1,19 +1,43 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - "mise.toml"
+      - ".claude/**"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - "mise.toml"
+      - ".claude/**"
 
 jobs:
   test:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: aarch64-apple-darwin
+          - os: ubuntu-24.04
+            platform: x86_64-linux-gnu
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Install Homebrew LLVM
-        run: brew install llvm
-
-      - uses: jdx/mise-action@v2
+      - name: Install intron
+        run: |
+          gh release download v0.14.0 -R misut/intron -p "intron-*-${{ matrix.platform }}.tar.gz"
+          tar xzf intron-*.tar.gz && sudo mv intron /usr/local/bin/ && rm intron-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Install toolchains
         run: |
@@ -21,7 +45,15 @@ jobs:
           intron install cmake 4.3.1
           intron install ninja 1.13.2
 
-      - name: Test
+      - name: Install exon
+        run: |
+          gh release download v0.17.0 -R misut/exon -p "exon-*-${{ matrix.platform }}.tar.gz"
+          tar xzf exon-*.tar.gz && sudo mv exon /usr/local/bin/ && rm exon-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build and test
         run: |
           eval "$(intron env)"
+          exon build
           exon test

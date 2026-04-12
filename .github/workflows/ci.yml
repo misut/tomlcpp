@@ -53,7 +53,7 @@ jobs:
 
       - name: Install exon
         run: |
-          gh release download v0.21.1 -R misut/exon -p "exon-*-${{ matrix.platform }}.tar.gz"
+          gh release download v0.21.3 -R misut/exon -p "exon-*-${{ matrix.platform }}.tar.gz"
           tar xzf exon-*.tar.gz && sudo mv exon /usr/local/bin/ && rm exon-*.tar.gz
         env:
           GH_TOKEN: ${{ github.token }}

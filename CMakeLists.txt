@@ -8,6 +8,15 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
 set(CMAKE_CXX_MODULE_STD ON)
 project(tomlcpp LANGUAGES CXX)
 
+if(MSVC)
+    add_compile_options(/W4 /wd4996 /utf-8)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
+if(TARGET tomlcpp)
+    return()
+endif()
+
 add_library(tomlcpp-modules)
 target_sources(tomlcpp-modules
     PUBLIC FILE_SET CXX_MODULES BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
@@ -16,9 +25,10 @@ target_sources(tomlcpp-modules
 
 add_library(tomlcpp ALIAS tomlcpp-modules)
 
-target_compile_definitions(tomlcpp-modules PUBLIC
-    EXON_PKG_NAME="tomlcpp"
-    EXON_PKG_VERSION="0.2.0"
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.cppm
+    PROPERTIES COMPILE_DEFINITIONS
+    "EXON_PKG_NAME=\"tomlcpp\";EXON_PKG_VERSION=\"0.3.0\""
 )
 
 add_executable(test-parse)

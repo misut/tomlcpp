@@ -1,6 +1,7 @@
 # Build
 build/
 .exon/
+exon.lock
 
 # IDE
 .vscode/

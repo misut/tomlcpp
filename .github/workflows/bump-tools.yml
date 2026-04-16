@@ -16,6 +16,8 @@ jobs:
       VERSION: ${{ github.event.client_payload.version }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.BUMP_BOT_TOKEN }}
 
       - name: Detect current version
         id: old
@@ -23,14 +25,6 @@ jobs:
           OLD=$(grep "vfox:misut/mise-${TOOL}" mise.toml \
             | grep -oP '= "\K[0-9]+\.[0-9]+\.[0-9]+')
           echo "version=$OLD" >> "$GITHUB_OUTPUT"
-
-      - name: Update workflow files
-        run: |
-          OLD="${{ steps.old.outputs.version }}"
-          find .github/workflows -name '*.yml' -exec sed -i \
-            "s|gh release download v${OLD} -R misut/${TOOL}|gh release download v${VERSION} -R misut/${TOOL}|g" {} +
-          find .github/workflows -name '*.yml' -exec sed -i \
-            "s|${TOOL}-v${OLD}-|${TOOL}-v${VERSION}-|g" {} +
 
       - name: Update mise.toml
         run: |
@@ -45,7 +39,7 @@ jobs:
           chmod +x exon && mv exon /usr/local/bin/
           exon sync
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUMP_BOT_TOKEN }}
 
       - name: Create and auto-merge PR
         run: |
@@ -59,11 +53,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: bump ${TOOL} to v${VERSION}"
-          git push origin "$BRANCH"
-          PR_URL=$(gh pr create \
-            --title "chore: bump ${TOOL} to v${VERSION}" \
-            --body "Automated bump triggered by [${TOOL} v${VERSION}](https://github.com/misut/${TOOL}/releases/tag/v${VERSION})." \
-            --base main)
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git push --force origin "HEAD:$BRANCH"
+          else
+            git push origin "$BRANCH"
+          fi
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
+          if [ -z "$PR_URL" ]; then
+            PR_URL=$(gh pr create \
+              --title "chore: bump ${TOOL} to v${VERSION}" \
+              --body "Automated bump triggered by [${TOOL} v${VERSION}](https://github.com/misut/${TOOL}/releases/tag/v${VERSION})." \
+              --base main \
+              --head "$BRANCH")
+          fi
           gh pr merge "$PR_URL" --auto --squash --delete-branch
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUMP_BOT_TOKEN }}

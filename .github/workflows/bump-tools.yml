@@ -47,7 +47,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Create PR
+      - name: Create and auto-merge PR
         run: |
           BRANCH="chore/bump-${TOOL}-v${VERSION}"
           git checkout -b "$BRANCH"
@@ -60,9 +60,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: bump ${TOOL} to v${VERSION}"
           git push origin "$BRANCH"
-          gh pr create \
+          PR_URL=$(gh pr create \
             --title "chore: bump ${TOOL} to v${VERSION}" \
             --body "Automated bump triggered by [${TOOL} v${VERSION}](https://github.com/misut/${TOOL}/releases/tag/v${VERSION})." \
-            --base main
+            --base main)
+          gh pr merge "$PR_URL" --auto --squash --delete-branch
         env:
           GH_TOKEN: ${{ github.token }}

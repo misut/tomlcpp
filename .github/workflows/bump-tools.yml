@@ -1,0 +1,68 @@
+name: Bump tool version
+
+on:
+  repository_dispatch:
+    types: [bump-tool]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      TOOL: ${{ github.event.client_payload.tool }}
+      VERSION: ${{ github.event.client_payload.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect current version
+        id: old
+        run: |
+          OLD=$(grep "vfox:misut/mise-${TOOL}" mise.toml \
+            | grep -oP '= "\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "version=$OLD" >> "$GITHUB_OUTPUT"
+
+      - name: Update workflow files
+        run: |
+          OLD="${{ steps.old.outputs.version }}"
+          find .github/workflows -name '*.yml' -exec sed -i \
+            "s|gh release download v${OLD} -R misut/${TOOL}|gh release download v${VERSION} -R misut/${TOOL}|g" {} +
+          find .github/workflows -name '*.yml' -exec sed -i \
+            "s|${TOOL}-v${OLD}-|${TOOL}-v${VERSION}-|g" {} +
+
+      - name: Update mise.toml
+        run: |
+          OLD="${{ steps.old.outputs.version }}"
+          sed -i "s|\"vfox:misut/mise-${TOOL}\" = \"${OLD}\"|\"vfox:misut/mise-${TOOL}\" = \"${VERSION}\"|" mise.toml
+
+      - name: Regenerate CMakeLists.txt
+        if: env.TOOL == 'exon'
+        run: |
+          gh release download "v${VERSION}" -R misut/exon -p "exon-*-x86_64-linux-gnu.tar.gz"
+          tar xzf exon-*.tar.gz && rm exon-*.tar.gz
+          chmod +x exon && mv exon /usr/local/bin/
+          exon sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create PR
+        run: |
+          BRANCH="chore/bump-${TOOL}-v${VERSION}"
+          git checkout -b "$BRANCH"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes detected"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: bump ${TOOL} to v${VERSION}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: bump ${TOOL} to v${VERSION}" \
+            --body "Automated bump triggered by [${TOOL} v${VERSION}](https://github.com/misut/${TOOL}/releases/tag/v${VERSION})." \
+            --base main
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -52,7 +52,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: bump ${TOOL} to v${VERSION}"
+          git commit --author "misut <pkr5207@gmail.com>" -m "chore: bump ${TOOL} to v${VERSION}"
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
             git push --force origin "HEAD:$BRANCH"
           else

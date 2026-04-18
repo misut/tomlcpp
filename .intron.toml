@@ -1,4 +1,12 @@
 [toolchain]
-llvm = "22.1.2"
 cmake = "4.3.1"
 ninja = "1.13.2"
+
+[toolchain.macos]
+llvm = "22.1.2"
+
+[toolchain.linux]
+llvm = "22.1.2"
+
+[toolchain.windows]
+msvc = "2022"

@@ -45,9 +45,7 @@ jobs:
 
       - name: Install toolchains
         run: |
-          intron install llvm 22.1.2
-          intron install cmake 4.3.1
-          intron install ninja 1.13.2
+          intron install
 
       - name: Install exon
         run: |
@@ -57,7 +55,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Build and test
-        run: |
-          eval "$(intron env)"
-          exon build
-          exon test
+        run: intron exec -- exon test

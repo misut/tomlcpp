@@ -13,6 +13,10 @@ if(MSVC)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
+if(NOT DEFINED EXON_ENABLE_TEST_TARGETS)
+    set(EXON_ENABLE_TEST_TARGETS ON)
+endif()
+
 if(TARGET tomlcpp)
     return()
 endif()
@@ -31,6 +35,8 @@ set_source_files_properties(
     "EXON_PKG_NAME=\"tomlcpp\";EXON_PKG_VERSION=\"0.3.0\""
 )
 
+if(EXON_ENABLE_TEST_TARGETS)
+
 add_executable(test-parse)
 target_sources(test-parse PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/parse.cpp
@@ -38,3 +44,4 @@ target_sources(test-parse PRIVATE
 target_link_libraries(test-parse PRIVATE
     tomlcpp-modules
 )
+endif()

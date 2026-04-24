@@ -32,7 +32,7 @@ add_library(tomlcpp ALIAS tomlcpp-modules)
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.cppm
     PROPERTIES COMPILE_DEFINITIONS
-    "EXON_PKG_NAME=\"tomlcpp\";EXON_PKG_VERSION=\"0.3.0\""
+    "EXON_PKG_NAME=\"tomlcpp\";EXON_PKG_VERSION=\"0.3.1\""
 )
 
 if(EXON_ENABLE_TEST_TARGETS)

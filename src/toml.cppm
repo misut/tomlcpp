@@ -1,3 +1,12 @@
+module;
+
+// stderr / fprintf / abort aren't reliably visible through `import std;` on
+// every WASI sysroot at the moment, so we pull them via the classic GMF path
+// to keep the `-fno-exceptions` fallback in detail::fail() building on all
+// supported targets. Matches the pattern used by misut/jsoncpp.
+#include <cstdio>
+#include <cstdlib>
+
 export module toml;
 import std;
 
@@ -81,6 +90,27 @@ Table parse_file(std::string_view path);
 
 namespace toml {
 
+namespace detail {
+
+// Diagnostic sink for the parser. When C++ exceptions are enabled (the
+// default on native builds), a ParseError is thrown — callers can catch it
+// and inspect `e.line()` / `e.what()`. When exceptions are disabled (e.g.
+// wasi-sdk's `-fno-exceptions -D_LIBCPP_NO_EXCEPTIONS`), the message is
+// written to stderr and the process aborts, which is the best we can do
+// without a pluggable error path. The `__cpp_exceptions` feature macro is
+// the portable way to tell which mode we're in.
+[[noreturn]] inline void fail(std::size_t line, std::string const& msg) {
+#if __cpp_exceptions
+    throw ParseError(line, msg);
+#else
+    std::fprintf(stderr, "toml: line %zu: %s\n", line, msg.c_str());
+    std::abort();
+#endif
+}
+
+} // namespace detail
+
+
 Value::Value(Value const& other) {
     std::visit([this](auto const& v) {
         using T = std::decay_t<decltype(v)>;
@@ -147,13 +177,13 @@ public:
                 }
 
                 if (at_end() || peek() != ']') {
-                    throw ParseError(line_, "expected ']'");
+                    detail::fail(line_, "expected ']'");
                 }
                 advance();
 
                 if (is_array_table) {
                     if (at_end() || peek() != ']') {
-                        throw ParseError(line_, "expected ']]'");
+                        detail::fail(line_, "expected ']]'");
                     }
                     advance();
                 }
@@ -183,7 +213,7 @@ public:
                         }
                         auto& val = current->at(k);
                         if (!val.is_table()) {
-                            throw ParseError(line_, std::format("'{}' is not a table", k));
+                            detail::fail(line_, std::format("'{}' is not a table", k));
                         }
                         current = &val.as_table();
                     }
@@ -194,14 +224,14 @@ public:
             auto key = parse_key();
             skip_ws();
             if (at_end() || peek() != '=') {
-                throw ParseError(line_, "expected '='");
+                detail::fail(line_, "expected '='");
             }
             advance();
             skip_ws();
             auto value = parse_value();
 
             if (current->contains(key)) {
-                throw ParseError(line_, std::format("duplicate key '{}'", key));
+                detail::fail(line_, std::format("duplicate key '{}'", key));
             }
             current->emplace(std::move(key), std::move(value));
             expect_end_of_line();
@@ -248,7 +278,7 @@ private:
             return;
         }
         if (!at_end() && peek() != '\n' && peek() != '\r') {
-            throw ParseError(line_, std::format("unexpected character '{}'", peek()));
+            detail::fail(line_, std::format("unexpected character '{}'", peek()));
         }
         if (!at_end()) advance();
     }
@@ -266,7 +296,7 @@ private:
     }
 
     std::string parse_key() {
-        if (at_end()) throw ParseError(line_, "expected key");
+        if (at_end()) detail::fail(line_, "expected key");
 
         if (peek() == '"') return parse_basic_string();
         if (peek() == '\'') return parse_literal_string();
@@ -276,13 +306,13 @@ private:
             advance();
         }
         if (pos_ == start) {
-            throw ParseError(line_, std::format("unexpected character '{}'", peek()));
+            detail::fail(line_, std::format("unexpected character '{}'", peek()));
         }
         return std::string{input_.substr(start, pos_ - start)};
     }
 
     Value parse_value() {
-        if (at_end()) throw ParseError(line_, "expected value");
+        if (at_end()) detail::fail(line_, "expected value");
 
         char c = peek();
 
@@ -308,7 +338,7 @@ private:
             return parse_number();
         }
 
-        throw ParseError(line_, std::format("unexpected character '{}'", c));
+        detail::fail(line_, std::format("unexpected character '{}'", c));
     }
 
     std::string parse_basic_string() {
@@ -319,7 +349,7 @@ private:
             char c = advance();
             if (c == '"') return result;
             if (c == '\\') {
-                if (at_end()) throw ParseError(line_, "unexpected end of string");
+                if (at_end()) detail::fail(line_, "unexpected end of string");
                 char esc = advance();
                 switch (esc) {
                     case '"':  result += '"';  break;
@@ -328,13 +358,13 @@ private:
                     case 't':  result += '\t'; break;
                     case 'r':  result += '\r'; break;
                     default:
-                        throw ParseError(line_, std::format("invalid escape '\\{}'", esc));
+                        detail::fail(line_, std::format("invalid escape '\\{}'", esc));
                 }
             } else {
                 result += c;
             }
         }
-        throw ParseError(line_, "unterminated string");
+        detail::fail(line_, "unterminated string");
     }
 
     std::string parse_literal_string() {
@@ -346,7 +376,7 @@ private:
             if (c == '\'') return result;
             result += c;
         }
-        throw ParseError(line_, "unterminated string");
+        detail::fail(line_, "unterminated string");
     }
 
     Value parse_number() {
@@ -356,7 +386,7 @@ private:
         if (!at_end() && (peek() == '+' || peek() == '-')) advance();
 
         if (at_end() || !(peek() >= '0' && peek() <= '9')) {
-            throw ParseError(line_, "expected number");
+            detail::fail(line_, "expected number");
         }
 
         while (!at_end() && peek() >= '0' && peek() <= '9') advance();
@@ -365,7 +395,7 @@ private:
             is_float = true;
             advance();
             if (at_end() || !(peek() >= '0' && peek() <= '9')) {
-                throw ParseError(line_, "expected digit after decimal point");
+                detail::fail(line_, "expected digit after decimal point");
             }
             while (!at_end() && peek() >= '0' && peek() <= '9') advance();
         }
@@ -375,7 +405,7 @@ private:
             advance();
             if (!at_end() && (peek() == '+' || peek() == '-')) advance();
             if (at_end() || !(peek() >= '0' && peek() <= '9')) {
-                throw ParseError(line_, "expected digit in exponent");
+                detail::fail(line_, "expected digit in exponent");
             }
             while (!at_end() && peek() >= '0' && peek() <= '9') advance();
         }
@@ -386,14 +416,14 @@ private:
             char* end = nullptr;
             double val = std::strtod(str.c_str(), &end);
             if (end != str.c_str() + str.size()) {
-                throw ParseError(line_, std::format("invalid float '{}'", str));
+                detail::fail(line_, std::format("invalid float '{}'", str));
             }
             return Value{val};
         } else {
             std::int64_t val;
             auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), val);
             if (ec != std::errc{}) {
-                throw ParseError(line_, std::format("invalid integer '{}'", str));
+                detail::fail(line_, std::format("invalid integer '{}'", str));
             }
             return Value{val};
         }
@@ -416,7 +446,7 @@ private:
                 skip_line();
                 skip_ws_and_newlines();
             }
-            if (at_end()) throw ParseError(line_, "unterminated array");
+            if (at_end()) detail::fail(line_, "unterminated array");
 
             arr.push_back(parse_value());
 
@@ -425,7 +455,7 @@ private:
                 skip_line();
                 skip_ws_and_newlines();
             }
-            if (at_end()) throw ParseError(line_, "unterminated array");
+            if (at_end()) detail::fail(line_, "unterminated array");
 
             if (peek() == ']') {
                 advance();
@@ -443,7 +473,7 @@ private:
                     break;
                 }
             } else {
-                throw ParseError(line_, "expected ',' or ']' in array");
+                detail::fail(line_, "expected ',' or ']' in array");
             }
         }
 
@@ -462,24 +492,24 @@ private:
 
         while (true) {
             skip_ws();
-            if (at_end()) throw ParseError(line_, "unterminated inline table");
+            if (at_end()) detail::fail(line_, "unterminated inline table");
 
             auto key = parse_key();
             skip_ws();
             if (at_end() || peek() != '=') {
-                throw ParseError(line_, "expected '=' in inline table");
+                detail::fail(line_, "expected '=' in inline table");
             }
             advance();
             skip_ws();
             auto value = parse_value();
 
             if (tbl.contains(key)) {
-                throw ParseError(line_, std::format("duplicate key '{}'", key));
+                detail::fail(line_, std::format("duplicate key '{}'", key));
             }
             tbl.emplace(std::move(key), std::move(value));
 
             skip_ws();
-            if (at_end()) throw ParseError(line_, "unterminated inline table");
+            if (at_end()) detail::fail(line_, "unterminated inline table");
 
             if (peek() == '}') {
                 advance();
@@ -493,7 +523,7 @@ private:
                     break;
                 }
             } else {
-                throw ParseError(line_, "expected ',' or '}' in inline table");
+                detail::fail(line_, "expected ',' or '}' in inline table");
             }
         }
 
@@ -511,7 +541,7 @@ Table parse(std::string_view input) {
 Table parse_file(std::string_view path) {
     auto file = std::ifstream{std::string{path}};
     if (!file) {
-        throw ParseError(0, std::format("cannot open file '{}'", path));
+        detail::fail(0, std::format("cannot open file '{}'", path));
     }
     auto content = std::string{
         std::istreambuf_iterator<char>{file},

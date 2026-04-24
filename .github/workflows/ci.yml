@@ -9,6 +9,10 @@ on:
       - ".gitignore"
       - ".claude/**"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
@@ -31,7 +35,7 @@ jobs:
           sed -n 's/^"vfox:misut\/mise-exon"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/exon=\1/p' mise.toml >> "$GITHUB_OUTPUT"
 
       - name: Cache toolchains
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.intron/toolchains
           key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.intron.toml') }}

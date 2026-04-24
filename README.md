@@ -8,7 +8,7 @@ A TOML parser for C++. No dependencies.
 
 ```toml
 [dependencies]
-"github.com/misut/tomlcpp" = "0.3.0"
+"github.com/misut/tomlcpp" = "0.3.1"
 ```
 
 ### CMake
@@ -77,6 +77,12 @@ try {
     // e.line() → 3
 }
 ```
+
+When the translation unit is compiled with `-fno-exceptions` (for example
+the wasi-sdk WebAssembly target), parse failures print
+`toml: line N: <msg>` to stderr and call `std::abort()` instead of
+throwing. Callers targeting WASM should validate input before invoking
+`parse` or ensure inputs are trusted.
 
 ## Supported TOML features
 

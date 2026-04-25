@@ -1,6 +1,13 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".claude/**"
   pull_request:
     branches: [main]
     paths-ignore:
@@ -10,7 +17,7 @@ on:
       - ".claude/**"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,11 +41,12 @@ jobs:
           sed -n 's/^"vfox:misut\/mise-intron"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/intron=\1/p' mise.toml >> "$GITHUB_OUTPUT"
           sed -n 's/^"vfox:misut\/mise-exon"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/exon=\1/p' mise.toml >> "$GITHUB_OUTPUT"
 
-      - name: Cache toolchains
-        uses: actions/cache@v5
+      - name: Restore toolchains
+        id: toolchain-cache
+        uses: actions/cache/restore@v5
         with:
           path: ~/.intron/toolchains
-          key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.intron.toml') }}
+          key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', '.intron.toml') }}
 
       - name: Install intron
         run: |
@@ -50,6 +58,13 @@ jobs:
       - name: Install toolchains
         run: |
           intron install
+
+      - name: Save toolchains
+        if: github.ref == 'refs/heads/main' && steps.toolchain-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.intron/toolchains
+          key: ${{ steps.toolchain-cache.outputs.cache-primary-key }}
 
       - name: Install exon
         run: |

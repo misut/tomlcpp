@@ -32,7 +32,7 @@ jobs:
             platform: x86_64-linux-gnu
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Resolve tool versions
         id: tool-versions
@@ -43,7 +43,7 @@ jobs:
 
       - name: Restore toolchains
         id: toolchain-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.intron/toolchains
           key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', '.intron.toml') }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: Save toolchains
         if: github.ref == 'refs/heads/main' && steps.toolchain-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.intron/toolchains
           key: ${{ steps.toolchain-cache.outputs.cache-primary-key }}

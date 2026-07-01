@@ -15,7 +15,7 @@ jobs:
       TOOL: ${{ github.event.client_payload.tool }}
       VERSION: ${{ github.event.client_payload.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.BUMP_BOT_TOKEN }}
 
